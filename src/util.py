@@ -873,12 +873,18 @@ def loadFile(filename, frame, maxSize = -1):
     ret = None
 
     try:
-        f = open(misc.toPath(filename), "r", encoding='UTF-8')
-
-        try:
-            ret = f.read(maxSize)
-        finally:
-            f.close()
+        if filename.endswith('.ttf'):
+            f = open(misc.toPath(filename), "rb")
+            try:
+                ret = str(f.read(maxSize)).encode("UTF-8")
+            finally:
+                f.close()
+        else:
+            f = open(misc.toPath(filename), "r", encoding='UTF-8')
+            try:
+                ret = f.read(maxSize)
+            finally:
+                f.close()
 
     except IOError as xxx_todo_changeme:
         (errno, strerror) = xxx_todo_changeme.args
