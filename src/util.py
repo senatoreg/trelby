@@ -874,9 +874,9 @@ def loadFile(filename, frame, maxSize = -1):
 
     try:
         if filename.endswith('.ttf'):
-            f = open(misc.toPath(filename), "rb")
+            f = open(misc.toPath(filename), 'rb')
             try:
-                ret = str(f.read(maxSize)).encode("UTF-8")
+                ret = f.read()
             finally:
                 f.close()
         else:

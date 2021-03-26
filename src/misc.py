@@ -92,7 +92,7 @@ def toPath(s):
     if unicodeFS:
         return s
     else:
-        return s.encode("UTF-8")
+        return s
 
 # return bitmap created from the given file. argument is as for
 # getFullPath.
