@@ -9,7 +9,6 @@ import functools
 import os.path
 
 import wx
-from PIL import ImageFont
 
 # stupid hack to get correct window modality stacking for dialogs
 cfgFrame = None
@@ -1518,30 +1517,29 @@ class PDFFontsPanel(wx.Panel):
         # passing around scripts containing references to fonts with
         # filenames like "/dev/zero" etc. no real font that I know of is
         # this big so it shouldn't hurt.
-        #fontProgram = util.loadFile(filename, cfgFrame, 10 * 1024 * 1024)
+        fontProgram = util.loadFile(filename, cfgFrame, 10 * 1024 * 1024)
 
-        #if fontProgram is None:
-        #    return ""
+        if fontProgram is None:
+            return ""
 
-        #f = truetype.Font(fontProgram)
+        f = truetype.Font(fontProgram)
 
-        #if not f.isOK():
-        #    wx.MessageBox("File '%s'\n"
-        #                  "does not appear to be a valid TrueType font."
-        #                  % filename,
-        #                  "Error", wx.OK, cfgFrame)
-        #
-        #    return ""
+        if not f.isOK():
+            wx.MessageBox("File '%s'\n"
+                          "does not appear to be a valid TrueType font."
+                          % filename,
+                          "Error", wx.OK, cfgFrame)
 
-        #if not f.allowsEmbedding():
-        #    wx.MessageBox("Font '%s'\n"
-        #                  "does not allow embedding in its license terms.\n"
-        #                  "You may encounter problems using this font"
-        #                  " embedded." % filename,
-        #                  "Error", wx.OK, cfgFrame)
-        f = ImageFont.truetype(filename)
+            return ""
 
-        return f.getname()[0]
+        if not f.allowsEmbedding():
+            wx.MessageBox("Font '%s'\n"
+                          "does not allow embedding in its license terms.\n"
+                          "You may encounter problems using this font"
+                          " embedded." % filename,
+                          "Error", wx.OK, cfgFrame)
+
+        return f.getPostscriptName()
 
 def cmpfunc(a, b):
     return (a > b) - (a < b)
