@@ -1117,7 +1117,7 @@ class MyCtrl(wx.Control):
 
             choice = dlg.GetFilterIndex()
             if choice == 0:
-                data = sp.generatePDF(True)
+                data = sp.generatePDF(True).encode('ISO-8859-1')
                 suffix = ".pdf"
             elif choice == 1:
                 data = sp.generateRTF()
