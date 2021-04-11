@@ -876,10 +876,10 @@ def loadFile(filename, frame, maxSize = -1):
     ret = None
 
     try:
-        f = open(misc.toPath(filename), "r", encoding='UTF-8')
+        f = open(misc.toPath(filename), "rb")
 
         try:
-            ret = f.read(maxSize)
+            ret = f.read(maxSize).decode("UTF-8")
         finally:
             f.close()
 
@@ -891,14 +891,14 @@ def loadFile(filename, frame, maxSize = -1):
 
     return ret
 
-def loadLatinFile(filename, frame, maxSize = -1):
+def loadLatin1File(filename, frame, maxSize = -1):
     ret = None
 
     try:
-        f = open(misc.toPath(filename), "r", encoding='ISO-8859-1')
+        f = open(misc.toPath(filename), "rb")
 
         try:
-            ret = f.read(maxSize)
+            ret = f.read(maxSize).decode("ISO-8859-1")
         finally:
             f.close()
 

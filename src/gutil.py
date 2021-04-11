@@ -81,7 +81,7 @@ def showTempPDF(pdfData, cfgGl, mainFrame):
                                             suffix = ".pdf")
 
             try:
-                os.write(fd, pdfData.encode("UTF-8"))
+                os.write(fd, pdfData.encode("ISO-8859-1"))
             finally:
                 os.close(fd)
 
