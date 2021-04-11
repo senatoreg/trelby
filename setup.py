@@ -130,6 +130,8 @@ options = {
 
 
 packageData = {"src": ["../resources/*",
+      "../resources/light/*",
+      "../resources/dark/*",
       "../names.txt.gz",
       "../dict_en.dat.gz",
       "../sample.trelby",

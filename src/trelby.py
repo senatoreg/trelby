@@ -1794,9 +1794,19 @@ class MyFrame(wx.Frame):
         self.toolBar = self.CreateToolBar(wx.TB_VERTICAL)
 
         def addTB(id, iconFilename, toolTip):
-            self.toolBar.AddTool(
-                id, "", misc.getBitmap("resources/%s" % iconFilename),
-                shortHelp=toolTip)
+            syssettings = wx.SystemSettings()
+            color = syssettings.GetColour(wx.SYS_COLOUR_WINDOW)
+            luminance = util.getLuminance(color.red, color.green, color.blue)
+            theme = "light" if luminance > 0.5 else "dark"
+
+            if "icon" not in iconFilename:
+                self.toolBar.AddTool(
+                    id, "", misc.getBitmap("resources/%s/%s" % (theme, iconFilename)),
+                    shortHelp=toolTip)
+            else:
+                self.toolBar.AddTool(
+                    id, "", misc.getBitmap("resources/%s" % iconFilename),
+                    shortHelp=toolTip)
 
         addTB(ID_FILE_NEW, "new.png", "New script")
         addTB(ID_FILE_OPEN, "open.png", "Open Script..")

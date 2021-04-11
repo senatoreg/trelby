@@ -127,8 +127,13 @@ class MyFSButton(wx.Window):
     def __init__(self, parent, id, getCfgGui):
         wx.Window.__init__(self, parent, id, size = (TAB_BAR_HEIGHT, TAB_BAR_HEIGHT))
 
+        syssettings = wx.SystemSettings()
+        color = syssettings.GetColour(wx.SYS_COLOUR_WINDOW)
+        luminance = util.getLuminance(color.red, color.green, color.blue)
+        theme = "light" if luminance > 0.5 else "dark"
+
         self.getCfgGui = getCfgGui
-        self.fsImage = getBitmap("resources/fullscreen.png")
+        self.fsImage = getBitmap("resources/%s/fullscreen.png" % theme)
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnMouseDown)
