@@ -119,7 +119,7 @@ class Font:
 
             return True
 
-        elif (platformID == 3) and (encodingID == 1) and (langID == 0x1033):
+        elif (platformID == 3) and (encodingID == 1) and (langID == 1033):
             # Windows, UTF-16BE
 
             #self.psName = s.get(nameID, platformID, encodingID)
