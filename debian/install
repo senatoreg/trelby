@@ -1,3 +1,5 @@
 resources/icon256.png /usr/share/resources
 trelby.desktop /usr/share/applications
-doc/trelby.1.gz /usr/share/man/man1
+trelby.1.gz /usr/share/man/man1
+dict_en.dat.gz /usr/share/trelby
+names.txt.gz /usr/share/trelby

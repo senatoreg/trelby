@@ -1,7 +1,16 @@
+#!/usr/bin/make -f
 export PYBUILD_NAME=trelby
 export PYBUILD_INSTALL_ARGS="--install-lib=/usr/share/trelby/ --install-scripts=/usr/bin"
 %:
 	dh $@ --with python3 --buildsystem=pybuild
 
+override_dh_auto_build:
+	dh_auto_build
+	make manual.html trelby.1.gz dict_en.dat.gz names.txt.gz
+
 override_dh_auto_install:
 	dh_auto_install --buildsystem=pybuild
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -f names.txt.gz dict_en.dat.gz manual.html MANIFEST trelby.1.gz doc/trelby.1.gz
