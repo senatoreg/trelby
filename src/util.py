@@ -134,7 +134,7 @@ def capitalize(s):
 # return 's', which must be a unicode string, converted to a ISO-8859-1
 # 8-bit string. characters not representable in ISO-8859-1 are discarded.
 def toLatin1(s):
-    return s.encode("ISO-8859-1", "ignore")
+    return s.encode("ISO-8859-1")
 
 # return 's', which must be a string of ISO-8859-1 characters, converted
 # to UTF-8.
@@ -576,6 +576,9 @@ def sortDict(d, sortFunc = None):
 
     return tmp
 
+def getLuminance(r, g, b):
+    return (0.299*r + 0.587*g + 0.114*b) / 255
+
 # an efficient FIFO container of fixed size. can't contain None objects.
 class FIFO:
     def __init__(self, size):
@@ -873,10 +876,29 @@ def loadFile(filename, frame, maxSize = -1):
     ret = None
 
     try:
-        f = open(misc.toPath(filename), "r", encoding='UTF-8')
+        f = open(misc.toPath(filename), "rb")
 
         try:
-            ret = f.read(maxSize)
+            ret = f.read(maxSize).decode("UTF-8")
+        finally:
+            f.close()
+
+    except IOError as xxx_todo_changeme:
+        (errno, strerror) = xxx_todo_changeme.args
+        wx.MessageBox("Error loading file '%s': %s" % (
+                filename, strerror), "Error", wx.OK, frame)
+        ret = None
+
+    return ret
+
+def loadLatin1File(filename, frame, maxSize = -1):
+    ret = None
+
+    try:
+        f = open(misc.toPath(filename), "rb")
+
+        try:
+            ret = f.read(maxSize).decode("ISO-8859-1")
         finally:
             f.close()
 

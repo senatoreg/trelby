@@ -1,5 +1,6 @@
 import struct
 unpack = struct.unpack
+import fontTools.ttLib as ttLib
 
 OFFSET_TABLE_SIZE = 12
 TABLE_DIR_SIZE = 16
@@ -24,10 +25,11 @@ def check(val):
 class Font:
 
     # load font from string s, which is the whole contents of a font file
-    def __init__(self, s):
+    def __init__(self, f):
         # is this a valid font
         self.ok = False
 
+        s = ttLib.TTFont(f)
         # parse functions for tables, and a flag for whether each has been
         # parsed successfully
         self.parseFuncs = {
@@ -60,18 +62,11 @@ class Font:
 
     # parse whole file
     def parse(self, s):
-        version, self.tableCnt = unpack(">LH", s[:6])
-
-        check(version == 0x00010000)
-
-        offset = OFFSET_TABLE_SIZE
-
-        for i in range(self.tableCnt):
-            self.parseTag(offset, s)
-            offset += TABLE_DIR_SIZE
-
         for name, func in self.parseFuncs.items():
-            if not func[1]:
+            if s.has_key(name):
+                func[0](s.get(name))
+                func[1] = True
+            else:
                 raise ParseError("Table %s missing/invalid" % name)
 
     # parse a single tag
@@ -89,33 +84,29 @@ class Font:
 
     # parse head table
     def parseHead(self, s):
-        magic = unpack(">L", s[12:16])[0]
+        magic = s.magicNumber
 
         check(magic == 0x5F0F3CF5)
 
     # parse name table
     def parseName(self, s):
-        fmt, nameCnt, storageOffset = unpack(">3H", s[:NAME_TABLE_SIZE])
-
+        #fmt = s.format
+        fmt = 0
         check(fmt == 0)
 
-        storage = s[storageOffset:]
-        offset = NAME_TABLE_SIZE
-
-        for i in range(nameCnt):
-            if self.parseNameRecord(s[offset : offset + NAME_RECORD_SIZE],
-                                    storage):
+        for nameRec in s.names:
+            if self.parseNameRecord(nameRec):
                 return
-
-            offset += NAME_RECORD_SIZE
 
         raise ParseError("No Postscript name found")
 
     # parse a single name record. s2 is string storage. returns True if
     # this record is a valid Postscript name.
-    def parseNameRecord(self, s, s2):
-        platformID, encodingID, langID, nameID, strLen, strOffset = \
-                    unpack(">6H", s)
+    def parseNameRecord(self, s):
+        platformID = s.platformID
+        encodingID = s.platEncID
+        langID = s.langID
+        nameID = s.nameID
 
         if nameID != 6:
             return False
@@ -123,26 +114,23 @@ class Font:
         if (platformID == 1) and (encodingID == 0) and (langID == 0):
             # Macintosh, 1-byte strings
 
-            self.psName = unpack("%ds" % strLen,
-                                 s2[strOffset : strOffset + strLen])[0]
+            #self.psName = s.getName(nameID, platformID, encodingID)
+            self.psName = s.toStr()
 
             return True
 
-        elif (platformID == 3) and (encodingID == 1) and (langID == 0x409):
+        elif (platformID == 3) and (encodingID == 1) and (langID == 1033):
             # Windows, UTF-16BE
 
-            tmp = unpack("%ds" % strLen,
-                                 s2[strOffset : strOffset + strLen])[0]
-
-            self.psName = tmp.decode("UTF-16BE", "ignore").encode(
-                "ISO-8859-1", "ignore")
+            #self.psName = s.get(nameID, platformID, encodingID)
+            self.psName = s.toStr()
 
             return True
 
         return False
 
     def parseOS2(self, s):
-        fsType = unpack(">H", s[8:10])[0]
+        fsType = s.fsType
 
         # the font embedding bits are a mess, the meanings have changed
         # over time in the TrueType/OpenType specs. this is the least

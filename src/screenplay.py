@@ -839,7 +839,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     # references to fonts with filenames like "/dev/zero"
                     # etc. no real font that I know of is this big so it
                     # shouldn't hurt.
-                    fontProgram = util.loadFile(pf.filename, None,
+                    fontProgram = util.loadLatin1File(pf.filename, None,
                                                 10 * 1024 * 1024)
                 else:
                     fontProgram = None
