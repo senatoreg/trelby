@@ -23,6 +23,8 @@ SHOT = 7
 NOTE = 8
 ACTBREAK = 9
 
+from typing import Tuple
+
 import autocompletion
 import config
 import error
@@ -164,8 +166,8 @@ class Screenplay:
 
         return sp
 
-    # save script to a string and return that
-    def save(self):
+    # save script to a utf-8 encoded string and return that
+    def save(self)->bytes:
         self.cfg.cursorLine = self.line
         self.cfg.cursorColumn = self.column
 
@@ -215,7 +217,7 @@ class Screenplay:
     # process. fatal errors are indicated by raising a MiscError. note
     # that this is a static function.
     @staticmethod
-    def load(s, cfgGl):
+    def load(s: str, cfgGl):
         lines = s.splitlines()
 
         sp = Screenplay(cfgGl)
@@ -408,7 +410,7 @@ class Screenplay:
     # already. returns a (key, value) tuple. if line doesn't match the
     # format, (None, None) is returned.
     @staticmethod
-    def parseConfigLine(s):
+    def parseConfigLine(s: str)->Tuple[str,str]:
         pattern = re.compile("#([a-zA-Z0-9\-]+) (.*)")
         m = pattern.search(s)
         if m:
@@ -641,7 +643,6 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
         TWOSPACE = "  "
         sceneStartsList = ("INT", "EXT", "EST", "INT./EXT", "INT/EXT", "I/E", "I./E")
 
-
         # does s look like a fountain scene line:
         def looksLikeScene(s):
             s = s.upper()
@@ -651,6 +652,35 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                     looksGood = True
                     break
             return looksGood
+
+        # Generate Title Page
+        def generateTitleString(keyword,titleLine,startAt,linePrefix, lineSuffix):
+            if (len(titleLine)-startAt)>1:
+                # multi-line
+                flines.append(keyword)
+                for part in titleLine:
+                    if startAt > 0:
+                        startAt -= 1
+                        continue
+                    flines.append('    '+linePrefix+part+lineSuffix)
+            elif len(titleLine) == 1 and keyword == titleLine[0]:
+                flines.append(keyword)
+            else:
+                flines.append(keyword+' '+titleLine[startAt])
+
+        titleNeeded=True
+        kwPattern = re.compile(r'^([A-za-z][^:]+:)')
+        for page in self.titles.pages:
+            for titleLine in page:
+                if titleNeeded and titleLine.isBold and titleLine.isCentered:
+                    generateTitleString('Title:',titleLine.items,0,'_**','**_')
+                    titleNeeded = False
+                elif titleLine.items[0]=='by':
+                    generateTitleString('Author:',titleLine.items,2,'','')
+                elif kwPattern.match(titleLine.items[0]):
+                    generateTitleString(titleLine.items[0],titleLine.items,0,'','')
+                else:
+                    generateTitleString('Contact:',titleLine.items,0,'','')
 
         for ele in eleList:
             typ, txt = ele
@@ -3238,9 +3268,14 @@ class Line:
         return config.lb2char(self.lb) + config.lt2char(self.lt)\
                + self.text
 
+    def __repr__(self)->str:
+        return self.__str__()
+
     def __ne__(self, other):
         return ((self.lt != other.lt) or (self.lb != other.lb) or
                 (self.text != other.text))
+    def __eq__(self, other):
+        return not self.__ne__(other)
 
     # opposite of __str__. NOTE: only meant for storing data internally by
     # the program! NOT USABLE WITH EXTERNAL INPUT DUE TO COMPLETE LACK OF

@@ -2,3 +2,4 @@ setuptools
 wxPython
 lxml
 fonttools
+pytest>=7.0

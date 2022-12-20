@@ -1,7 +1,10 @@
+from typing import Optional, List
+
 import config
 import gutil
 import misc
 import screenplay
+import titles
 import util
 
 from lxml import etree
@@ -215,23 +218,8 @@ def importFadein(fileName, frame):
 def importCeltx(fileName, frame):
     # Celtx files are zipfiles, and the script content is within a file
     # called "script-xxx.html", where xxx can be random.
-
-    # the 5 MB limit is arbitrary, we just want to avoid getting a
-    # MemoryError exception for /dev/zero etc.
-    data = util.loadFile(fileName, frame, 5000000)
-
-    if data == None:
-        return None
-
-    if len(data) == 0:
-        wx.MessageBox("File is empty.", "Error", wx.OK, frame)
-
-        return None
-
-    buf = io.StringIO(data)
-
     try:
-        z = zipfile.ZipFile(buf)
+        z = zipfile.ZipFile(fileName)
     except:
         wx.MessageBox("File is not a valid Celtx script file.", "Error", wx.OK, frame)
         return None
@@ -287,7 +275,9 @@ def importCeltx(fileName, frame):
     for para in root.xpath("/html/body/p"):
         items = []
         for line in para.itertext():
-            items.append(str(line.replace("\n", " ")))
+            text = line.replace("\n", " ").strip()
+            if text != '':
+                items.append(text)
 
         lt = elemMap.get(para.get("class"), screenplay.ACTION)
 
@@ -394,7 +384,7 @@ def importFDX(fileName, frame):
 
 # import Fountain files.
 # http://fountain.io
-def importFountain(fileName, frame):
+def importFountain(fileName, frame, titlePages):
     # regular expressions for fountain markdown.
     # https://github.com/vilcans/screenplain/blob/master/screenplain/richstring.py
     ire = re.compile(
@@ -449,7 +439,8 @@ def importFountain(fileName, frame):
         return None
 
     inf = []
-    inf.append(misc.CheckBoxItem("Import titles as action lines."))
+    inf.append(misc.CheckBoxItem("Import titles to title page."))
+    inf.append(misc.CheckBoxItem("Import titles as action lines.",selected=False))
     inf.append(misc.CheckBoxItem("Remove unsupported formatting markup."))
     inf.append(misc.CheckBoxItem("Import section/synopsis as notes."))
 
@@ -458,11 +449,12 @@ def importFountain(fileName, frame):
 
     if dlg.ShowModal() != wx.ID_OK:
         dlg.Destroy()
-        return None
+        return None, titlePages
 
-    importTitles = inf[0].selected
-    removeMarkdown = inf[1].selected
-    importSectSyn = inf[2].selected
+    importTitlePage = inf[0].selected
+    importTitles = inf[1].selected
+    removeMarkdown = inf[2].selected
+    importSectSyn = inf[3].selected
 
     # pre-process data - fix newlines, remove boneyard.
     data = util.fixNL(data)
@@ -497,11 +489,79 @@ def importFountain(fileName, frame):
         l = util.toInputStr(prelines[0].expandtabs(tabWidth).lstrip().lower())
         if not l.startswith("fade") and l.count(":") == 1:
             # these are title lines. Now do what the user requested.
+            if importTitlePage:
+                #Extract usable title page lines
+                kwPattern = re.compile(r'^([A-za-z][^:]+:)')
+                continuePattern = re.compile(r'^\s\s\s+') # line begins with 3 or more spaces
+                titleIdx=0
+                gatheredTitles=[]
+                rejects=[]
+                l = prelines[0]
+                while l != '':
+                    match=kwPattern.split(l)
+                    match=[ll.strip() for ll in match]
+                    if len(match) == 3: # keyword line
+                        if match[2] == '':
+                            follows=[]
+                            titleIdx+=1 # gather indented prelines
+                            nextline = continuePattern.match(prelines[titleIdx])
+                            while nextline:
+                                follows.append(prelines[titleIdx].strip('_* \t'))
+                                titleIdx+=1
+                                nextline = continuePattern.match(prelines[titleIdx])
+                            titleIdx-=1
+                            gatheredTitles.append([match[1],follows])
+                        else:
+                            gatheredTitles.append([match[1],[match[2].strip('_* \t')]])
+                    else:
+                        l += TWOSPACE
+                        rejects.append(l)
+                    titleIdx+=1
+                    l=prelines[titleIdx]
+                # replace default titles with imported ones
+                leftX = 15.0
+                leftY = 220.0
+                centreX = 0.0
+                centreY = 150.0
+                for t in gatheredTitles:
+                    titlenr=-1
+                    if t[0] == 'Title:':
+                        titlenr=0
+                    elif t[0] == 'Author:' or t[0]=='Authors:':
+                        titlenr=1
+                        t[1]=["by",""]+t[1]
+                    elif t[0] == 'Contact:':
+                        titlenr=2
+                    else:
+                        titlenr=len(titlePages[0])
+                        if t[0] == 'Credit:' or t[0] == 'Source:':
+                            centred = True
+                            thisX = centreX
+                            thisY = centreY
+                            centreY += 5
+                        else:
+                            centred = False
+                            thisX = leftX
+                            thisY=leftY
+                            leftY -= 5
+                        if len(t[1])==1:
+                            newItems = [t[0]+" "+t[1][0]]
+                        else:
+                            newItems = [t[0]]+t[1]
+                        newTitleString = titles.TitleString(newItems, y = thisY, isCentered = centred)
+                        titlePages[0].append( newTitleString)
+                        continue
+                    targetTitle=titlePages[0][titlenr]
+                    targetTitle.items=t[1]
+                # user might request that titles go into both title page & script
+                if not importTitles:
+                    rejects += prelines[c+1:]
+                    prelines=rejects
             if importTitles:
                 # add TWOSPACE to all the title lines.
                 for i in range(c):
                     prelines[i] += TWOSPACE
-            else:
+            elif not importTitlePage:
                 #remove these lines
                 prelines = prelines[c+1:]
 
@@ -677,12 +737,12 @@ def importFountain(fileName, frame):
             ret.append(ln)
 
     makeLastLBLast()
-    return ret
+    return ret, titlePages
 
 # import text file from fileName, return list of Line objects for the
 # screenplay or None if something went wrong. returned list always
 # contains at least one line.
-def importTextFile(fileName, frame):
+def importTextFile(fileName: str, frame: wx.Frame)->Optional[List[screenplay.Line]]:
 
     # the 1 MB limit is arbitrary, we just want to avoid getting a
     # MemoryError exception for /dev/zero etc.
