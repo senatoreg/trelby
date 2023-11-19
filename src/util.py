@@ -884,7 +884,7 @@ def loadFile(filename: str, frame: Optional[wx.Frame], maxSize: int = -1, binary
             f = open(misc.toPath(filename), "r", encoding='UTF-8')
 
         try:
-            ret = f.read(maxSize).decode("UTF-8")
+            ret = f.read(maxSize)
         finally:
             f.close()
 
@@ -896,14 +896,17 @@ def loadFile(filename: str, frame: Optional[wx.Frame], maxSize: int = -1, binary
 
     return ret
 
-def loadLatin1File(filename, frame, maxSize = -1):
+def loadLatin1File(filename: str, frame: Optional[wx.Frame], maxSize: int = -1, binary: bool = False) -> Optional[AnyStr]:
     ret = None
 
     try:
-        f = open(misc.toPath(filename), "rb")
+        if binary:
+            f = open(misc.toPath(filename), "rb")
+        else:
+            f = open(misc.toPath(filename), "r", encoding='ISO-8859-1')
 
         try:
-            ret = f.read(maxSize).decode("ISO-8859-1")
+            ret = f.read(maxSize)
         finally:
             f.close()
 
