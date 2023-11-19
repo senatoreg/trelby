@@ -2,4 +2,5 @@ setuptools
 wxPython
 lxml
 fonttools
+reportlab
 pytest>=7.0

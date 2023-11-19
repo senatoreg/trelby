@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import wx
 
 # linebreak types
 
@@ -826,11 +827,11 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
     # 100% correct for the screenplay. isExport is True if this is an
     # "export to file" operation, False if we're just going to launch a
     # PDF viewer with the data.
-    def generatePDF(self, isExport):
+    def generatePDF(self, isExport: bool) -> bytes:
         return pdf.generate(self.generatePML(isExport))
 
     # Same arguments as generatePDF, but returns a PML document.
-    def generatePML(self, isExport):
+    def generatePML(self, isExport: bool) -> pml.Document:
         pager = mypager.Pager(self.cfg)
         self.titles.generatePages(pager.doc)
 
@@ -848,34 +849,19 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
             else:
                 break
 
+        userHasSetFontNameWithoutFile = False
+
         for pfi in self.cfg.getPDFFontIds():
             pf = self.cfg.getPDFFont(pfi)
 
-            if pf.pdfName:
-                # TODO: it's nasty calling loadFile from here since it
-                # uses wxMessageBox. dialog stacking order is also wrong
-                # since we don't know the frame to give. so, we should
-                # remove references to wxMessageBox from util and instead
-                # pass in an ErrorHandlerObject to all functions that need
-                # it. then the GUI program can use a subclass of that that
-                # stores the frame pointer inside it, and testing
-                # framework / other non-interactive uses can use a version
-                # that logs errors to stderr / raises an exception /
-                # whatever.
-
-                if pf.filename != "":
-                    # we load at most 10 MB to avoid a denial-of-service
-                    # attack by passing around scripts containing
-                    # references to fonts with filenames like "/dev/zero"
-                    # etc. no real font that I know of is this big so it
-                    # shouldn't hurt.
-                    fontProgram = util.loadLatin1File(pf.filename, None,
-                                                10 * 1024 * 1024)
-                else:
-                    fontProgram = None
-
+            if pf.pdfName and pf.filename != "":
                 pager.doc.addFont(pf.style,
-                                  pml.PDFFontInfo(pf.pdfName, fontProgram))
+                                  pml.PDFFontInfo(pf.pdfName, pf.filename))
+            elif pf.pdfName:
+                userHasSetFontNameWithoutFile = True
+
+        if userHasSetFontNameWithoutFile:
+            wx.MessageBox('Setting a font name without a font file is not possible in Trelby any more. Please adjust your settings in Script > Settings > Change > PDF/Fonts. Trelby will fall back to the default font for now.')
 
         return pager.doc
 
@@ -1037,7 +1023,6 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
                         s = text
 
                     to.toc = pml.TOCItem(s, to)
-                    pager.doc.addTOC(to.toc)
 
             if doExtra and cfg.pdfShowLineNumbers:
                 pg.add(pml.TextOp("%02d" % (i - start + 1),
@@ -2482,7 +2467,7 @@ Generated with <a href="http://www.trelby.org">Trelby</a>.</p>
 
     # compare this script to sp2 (Screenplay), return a PDF file (as a
     # string) of the differences, or None if the scripts are identical.
-    def compareScripts(self, sp2):
+    def compareScripts(self, sp2) -> bytes:
         s1 = self.generateText(False).split("\n")
         s2 = sp2.generateText(False).split("\n")
 
